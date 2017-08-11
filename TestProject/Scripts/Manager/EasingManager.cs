@@ -5,6 +5,37 @@ using UnityEngine.UI;
 
 namespace Animate
 {
+	public enum Target
+	{
+		Position,
+		LocalScale,
+	}
+	public static class Extension
+	{
+		//	todo: 初期座標は自身から取得で、スピードは何秒間アニメーションさせるかで決める
+		public static void SetEasing(this Transform transform, Target target, float speed, Easing.Type type, Easing.Ease ease, Vector3 start, Vector3 end)
+		{
+			switch (target)
+			{
+			case Target.Position:
+				{
+					PosInfo info = new PosInfo(speed, type, ease, transform, start, end);
+					EasingManager.Instance.PosInfoList.Add(info);
+				}
+				break;
+			case Target.LocalScale:
+				{
+					ScaleInfo info = new ScaleInfo(speed, type, ease, transform, start, end);
+					EasingManager.Instance.ScaleInfoList.Add(info);
+				}
+				break;
+			default:
+				Debug.LogError("SetEasing [ " + target + " ]");
+				break;
+			}
+		}
+	}
+
 	//	補間用情報クラス
 	public abstract class BaseInfo
 	{
@@ -12,73 +43,75 @@ namespace Animate
 		public Easing.Type Type { get; set; }
 		public Easing.Ease Ease { get; set; }
 		public IEnumerator Enumerator { get; set; }
-		protected abstract IEnumerator Calculate ();
 
-		public BaseInfo (float speed, Easing.Type type, Easing.Ease ease)
+		protected abstract void ApplyEasing(float t);
+		protected IEnumerator Calculate()
+		{
+			float t = 0.0f;
+			while (t != 1.0f)
+			{
+				t += Speed;
+				if (t > 1.0f) { t = 1.0f; }
+				ApplyEasing(t);
+				yield return null;
+			}
+		}
+
+		public BaseInfo(float speed, Easing.Type type, Easing.Ease ease)
 		{
 			Speed = speed;
 			Type = type;
 			Ease = ease;
-			Enumerator = Calculate ();
+			Enumerator = Calculate();
+		}
+	}
+
+	//	三次元ベクトル情報クラス
+	public abstract class Vector3Info : BaseInfo
+	{
+		public Transform Transform { get; set; }
+		public Vector3 Start { get; set; }
+		public Vector3 End { get; set; }
+		public Vector3Info(float speed, Easing.Type type, Easing.Ease ease, Transform transform, Vector3 start, Vector3 end)
+			: base (speed, type, ease)
+		{
+			Transform = transform;
+			Start = start;
+			End = end;
 		}
 	}
 
 	//	座標補間クラス
-	public class PosInfo : BaseInfo
+	public class PosInfo : Vector3Info
 	{
-		public Transform Transform { get; set; }
-		public Vector3 StartPos { get; set; }
-		public Vector3 EndPos { get; set; }
-		public PosInfo (float speed, Easing.Type type, Easing.Ease ease, Transform transform, Vector3 startPos, Vector3 endPos)
-			: base (speed, type, ease)
+		protected override void ApplyEasing(float t)
 		{
-			Transform = transform;
-			StartPos = startPos;
-			EndPos = endPos;
+			Transform.position = Easing.Curve(Type, Ease, t, Start, End);
 		}
-		protected override IEnumerator Calculate ()
-		{
-			for (float t = 0; t < 1.0f; t += Speed) {
-				t += Speed;
-				Transform.position = Easing.Curve (Type, Ease, t, StartPos, EndPos);
-				yield return null;
-			}
-		}
+		public PosInfo (float speed, Easing.Type type, Easing.Ease ease, Transform transform, Vector3 start, Vector3 end)
+			: base (speed, type, ease, transform, start, end) { }
 	}
 
 	//	スケール補間クラス
-	public class ScaleInfo : BaseInfo
+	public class ScaleInfo : Vector3Info
 	{
-		public Transform Transform { get; set; }
-		public Vector3 StartScale { get; set; }
-		public Vector3 EndScale { get; set; }
-		public ScaleInfo (float speed, Easing.Type type, Easing.Ease ease, Transform transform, Vector3 startScale, Vector3 endScale)
-			: base (speed, type, ease)
+		protected override void ApplyEasing(float t)
 		{
-			Transform = transform;
-			StartScale = startScale;
-			EndScale = endScale;
+			Transform.localScale = Easing.Curve(Type, Ease, t, Start, End);
 		}
-		protected override IEnumerator Calculate ()
-		{
-			for (float t = 0; t < 1.0f; t += Speed) {
-				t += Speed;
-				Transform.localScale = Easing.Curve (Type, Ease, t, StartScale, EndScale);
-				yield return null;
-			}
-		}
+		public ScaleInfo(float speed, Easing.Type type, Easing.Ease ease, Transform transform, Vector3 start, Vector3 end)
+			: base (speed, type, ease, transform, start, end) { }
 	}
 }
 
 //	補間管理クラス
 public class EasingManager : SingletonMonoBehaviour<EasingManager>
 {
-	//	補間させたいクラスのリスト
 	public List<Animate.PosInfo> PosInfoList { get; set; }
 	public List<Animate.ScaleInfo> ScaleInfoList { get; set; }
 
 	//	初期化
-	private void Start ()
+	protected override void Init ()
 	{
 		PosInfoList = new List<Animate.PosInfo> ();
 		ScaleInfoList = new List<Animate.ScaleInfo> ();

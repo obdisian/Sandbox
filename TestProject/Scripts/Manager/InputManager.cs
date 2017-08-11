@@ -63,8 +63,8 @@ public class InputManager : SingletonMonoBehaviour<InputManager>
 
 
 	// 初期化
-	void Start () {
-
+	protected override void Init ()
+	{
 		State = TouchState.None;
 		MovePinchScale = 0;
 		SwipeVector = Vector3.zero;
