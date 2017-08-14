@@ -4,10 +4,10 @@ using UnityEngine;
 
 public class Player : RectMover
 {
-//	[SerializeField]
+	[SerializeField]
 	protected float moveSpeed = 0.2f;
 
-//	[SerializeField]
+	[SerializeField]
 	protected float jumpPower = 0.75f;
 
 
@@ -19,6 +19,10 @@ public class Player : RectMover
 	private SpriteRenderer spriteRenderer;
 
 
+	//	残像作成
+	private Afterimage afterimage;
+
+
 	//	初期化処理
 	protected override void Start ()
 	{
@@ -26,11 +30,15 @@ public class Player : RectMover
 
 		restartPoint = transform.position;
 		spriteRenderer = GetComponent<SpriteRenderer> ();
+
+		afterimage = new Afterimage (gameObject);
 	}
 
 	//	更新処理
 	protected override void Move ()
 	{
+		afterimage.Move ();
+
 		velocity.vertical -= transform.up * gravityScale;
 
 		//	左右移動

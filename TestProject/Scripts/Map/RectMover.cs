@@ -22,7 +22,7 @@ public abstract class RectMover : Mover
 	[SerializeField]
 	protected Vector2 rectScale = new Vector2 (0.5f, 0.75f);
 
-//	[SerializeField]
+	[SerializeField]
 	protected float gravityScale = 0.098f;
 
 	protected bool isGround = false;
