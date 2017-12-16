@@ -6,11 +6,11 @@ public class Game : MonoBehaviour {
 
 	void Start ()
 	{
-		AudioManager.Instance.LoadBgm ("1", "Audio/BGM/" + "SND_BGM_Stage1");
-		AudioManager.Instance.LoadBgm ("2", "Audio/BGM/" + "SND_BGM_Stage2");
-		AudioManager.Instance.LoadSe ("a", "Audio/SE/" + "SND_SE01");
+		AudioManager.Instance.Setup (AudioManager.Type.Bgm, "1", "Audio/BGM/" + "SND_BGM_Stage1");
+		AudioManager.Instance.Setup (AudioManager.Type.Bgm, "2", "Audio/BGM/" + "SND_BGM_Stage2");
+		AudioManager.Instance.Setup (AudioManager.Type.Se, "a", "Audio/SE/" + "SND_SE01");
 
-		AudioManager.Instance.PlayBgm ("1");
+		AudioManager.Instance.Play (AudioManager.Type.Bgm, "1");
 	}
 
 	void Update ()
@@ -21,10 +21,10 @@ public class Game : MonoBehaviour {
 		}
 
 		if (Input.GetKeyDown (KeyCode.Space)) {
-			AudioManager.Instance.PlaySe ("a");
+			AudioManager.Instance.Play (AudioManager.Type.Se, "a");
 		}
 		if (Input.GetKeyDown (KeyCode.Z)) {
-			AudioManager.Instance.PlayBgm ("2");
+			AudioManager.Instance.Play (AudioManager.Type.Bgm, "2");
 		}
 	}
 }

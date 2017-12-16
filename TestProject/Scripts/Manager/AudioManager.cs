@@ -2,14 +2,14 @@
 using System.Collections;
 using System.Collections.Generic;
 
-//  サウンド管理
 public class AudioManager : SingletonMonoBehaviour<AudioManager>
 {
 	//  種類
-	private enum Type
+	public enum Type
 	{
 		Bgm,
 		Se,
+		Max,
 	}
 
 	//  保持するデータ
@@ -29,67 +29,58 @@ public class AudioManager : SingletonMonoBehaviour<AudioManager>
 	// サウンドリソース
 	private AudioSource m_SourceBgm = null;
 	private AudioSource m_SourceSe = null;
-	private Dictionary<string, Data> m_PoolBgm = new Dictionary<string, Data>();
-	private Dictionary<string, Data> m_PoolSe = new Dictionary<string, Data>();
+	private Dictionary<string, Data>[] m_DataTable = new Dictionary<string, Data>[(int)Type.Max];
+	private Dictionary<string, Data> GetDataTable(Type type) { return m_DataTable[(int)type]; }
 
 	//	初期化
-	protected override void Init ()
+	protected override void Init()
 	{
 		m_SourceBgm = gameObject.AddComponent<AudioSource>();
 		m_SourceSe = gameObject.AddComponent<AudioSource>();
+		m_DataTable [(int)Type.Bgm] = new Dictionary<string, Data>();
+		m_DataTable [(int)Type.Se] = new Dictionary<string, Data>();
 	}
 
-	//  AudioSourceを取得する
+	//  使用するAudioSourceを取得する
 	private AudioSource UseAudioSource(Type type)
 	{
-		if(type == Type.Bgm)
+		switch(type)
 		{
-			return m_SourceBgm;
+		case Type.Bgm: return m_SourceBgm;
+		case Type.Se: return m_SourceSe;
 		}
-		else
-		{
-			return m_SourceSe;
-		}
+		return null;
 	}
 
-	// BGMの読み込み
-	public void LoadBgm(string key, string resourceName)
+	// BGM/SEの読み込み
+	public void Setup(Type type, string key, string resourceName)
 	{
-		if (m_PoolBgm.ContainsKey(key))
-		{
-			m_PoolBgm.Remove(key);
-		}
-		m_PoolBgm.Add(key, new Data(key, resourceName));
+		var table = GetDataTable(type);
+		if (table.ContainsKey(key)) { table.Remove(key); }
+		table.Add(key, new Data(key, resourceName));
 	}
 
-	// SEの読み込み
-	public void LoadSe(string key, string resourceName)
+	//  BGM/SEの再生
+	public bool Play(Type type, string key)
 	{
-		if (m_PoolSe.ContainsKey(key))
+		var table = GetDataTable(type);
+		if(table.ContainsKey(key) == false) { return false; }
+		AudioSource source = UseAudioSource(type);
+
+		switch(type)
 		{
-			m_PoolSe.Remove(key);
+		case Type.Bgm:
+			StopBgm();
+			source.loop = true;
+			source.clip = table[key].Clip;
+			source.Play();
+			return true;
+
+		case Type.Se:
+			source.PlayOneShot(table[key].Clip);
+			return true;
 		}
-		m_PoolSe.Add(key, new Data(key, resourceName));
-	}
-
-	//  BGMの再生
-	public bool PlayBgm(string key) {
-		if(m_PoolBgm.ContainsKey(key) == false) { return false; }
-		StopBgm();
-		AudioSource source = UseAudioSource(Type.Bgm);
-		source.loop = true;
-		source.clip = m_PoolBgm[key].Clip;
-		source.Play();
-		return true;
-	}
-
-	//  SEの再生
-	public bool PlaySe(string key)
-	{
-		if(m_PoolSe.ContainsKey(key) == false) { return false; }
-		AudioSource source = UseAudioSource(Type.Se);
-		source.PlayOneShot(m_PoolSe[key].Clip);
-		return true;
+		return false;
 	}
 
 	//  BGMの停止
