@@ -64,7 +64,7 @@ public class AudioManager : SingletonMonoBehaviour<AudioManager>
 	public bool Play(Type type, string key)
 	{
 		var table = GetDataTable(type);
-		if(table.ContainsKey(key) == false) { return false; }
+		if(!table.ContainsKey(key)) { return false; }
 		AudioSource source = UseAudioSource(type);
 
 		switch(type)
