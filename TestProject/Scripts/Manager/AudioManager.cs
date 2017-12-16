@@ -1,55 +1,101 @@
-﻿using System.Collections;
+﻿using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 
+//  サウンド管理
 public class AudioManager : SingletonMonoBehaviour<AudioManager>
 {
-	private static readonly string BgmPath = "Audio/BGM/";
-	private static readonly string SePath = "Audio/SE/";
-
-	//	BGMを再生するコンポーネント
-	AudioSource bgmAudioSource;
-
-	//	SEを再生するコンポーネント
-	AudioSource seAudioSource;
-
-	//	音データ
-	List<AudioClip> clipList = new List<AudioClip> ();
-
-	//	BGMにアクセスするためのテーブル
-	private Dictionary<string, AudioData> poolBgm = new Dictionary<string, AudioData> ();
-	//	SEにアクセスするためのテーブル 
-	private Dictionary<string, AudioData> poolSe = new Dictionary<string, AudioData> ();
-
-
-
-	/// 保持するデータ
-	private class AudioData
+	//  種類
+	private enum Type
 	{
-		public string key;				//	アクセス用のキー
-		public string resourcesName;	//	リソース名
-		public AudioClip clip;			//	音データ
+		Bgm,
+		Se,
+	}
 
-		public AudioData(string key, string res) {
-			this.key = key;
-			resourcesName = SePath + res;
-			// AudioClipの取得
-			clip = Resources.Load(resourcesName) as AudioClip;
+	//  保持するデータ
+	private class Data
+	{
+		public string Key;
+		public string ResourceName;
+		public AudioClip Clip;
+		public Data(string key, string res)
+		{
+			Key = key;
+			ResourceName = res;
+			Clip = Resources.Load(ResourceName) as AudioClip;
 		}
 	}
 
+	// サウンドリソース
+	private AudioSource m_SourceBgm = null;
+	private AudioSource m_SourceSe = null;
+	private Dictionary<string, Data> m_PoolBgm = new Dictionary<string, Data>();
+	private Dictionary<string, Data> m_PoolSe = new Dictionary<string, Data>();
 
-
-
-	//	初期化処理
+	//	初期化
 	protected override void Init ()
 	{
-		;
+		m_SourceBgm = gameObject.AddComponent<AudioSource>();
+		m_SourceSe = gameObject.AddComponent<AudioSource>();
 	}
 
-	//	更新処理
-	private void Update ()
+	//  AudioSourceを取得する
+	private AudioSource UseAudioSource(Type type)
 	{
-		
+		if(type == Type.Bgm)
+		{
+			return m_SourceBgm;
+		}
+		else
+		{
+			return m_SourceSe;
+		}
+	}
+
+	// BGMの読み込み
+	public void LoadBgm(string key, string resourceName)
+	{
+		if (m_PoolBgm.ContainsKey(key))
+		{
+			m_PoolBgm.Remove(key);
+		}
+		m_PoolBgm.Add(key, new Data(key, resourceName));
+	}
+
+	// SEの読み込み
+	public void LoadSe(string key, string resourceName)
+	{
+		if (m_PoolSe.ContainsKey(key))
+		{
+			m_PoolSe.Remove(key);
+		}
+		m_PoolSe.Add(key, new Data(key, resourceName));
+	}
+
+	//  BGMの再生
+	public bool PlayBgm(string key) {
+		if(m_PoolBgm.ContainsKey(key) == false) { return false; }
+		StopBgm();
+		AudioSource source = UseAudioSource(Type.Bgm);
+		source.loop = true;
+		source.clip = m_PoolBgm[key].Clip;
+		source.Play();
+		return true;
+	}
+
+	//  SEの再生
+	public bool PlaySe(string key)
+	{
+		if(m_PoolSe.ContainsKey(key) == false) { return false; }
+		AudioSource source = UseAudioSource(Type.Se);
+		source.PlayOneShot(m_PoolSe[key].Clip);
+		return true;
+	}
+
+	//  BGMの停止
+	public bool StopBgm()
+	{
+		UseAudioSource(Type.Bgm).Stop();
+		return true;
 	}
 }

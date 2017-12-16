@@ -19,10 +19,10 @@ public abstract class RectMover : Mover
 		Left,
 	}
 
-	[SerializeField]
+	[SerializeField, TooltipAttribute("押し当たり判定のサイズ")]
 	protected Vector2 rectScale = new Vector2 (0.5f, 0.75f);
 
-	[SerializeField]
+	[SerializeField, TooltipAttribute("重力の大きさ")]
 	protected float gravityScale = 0.098f;
 
 	protected bool isGround = false;
@@ -50,6 +50,7 @@ public abstract class RectMover : Mover
 			float velDist = Vector3.Dot (transform.right * dir, velocity.horizontal);
 			if (velDist > 0) {
 				velocity.horizontal = Vector3.zero;
+				transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.collider.gameObject.transform.up);
 			}
 		}
 	}
@@ -72,6 +73,7 @@ public abstract class RectMover : Mover
 
 				if (dir == -1) {
 					isGround = true;
+					transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.collider.gameObject.transform.up);
 				}
 			} else {
 

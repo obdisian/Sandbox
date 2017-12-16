@@ -1,9 +1,20 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using Animate;
+using animate;
 
-public class Afterimage
+//	残像クラス
+public class Afterimage : MonoBehaviour
+{
+	//	終了処理
+	protected virtual void OnDestroy ()
+	{
+//		EasingManager.Instance.InfoList.Remove (this);
+	}
+}
+
+//	残像操作クラス
+public class AfterimageController
 {
 	private static readonly Color ClearColor = new Color (1.0f, 1.0f, 1.0f, 0.0f);
 
@@ -14,7 +25,7 @@ public class Afterimage
 
 
 	//	コンストラクタ
-	public Afterimage (GameObject obj)
+	public AfterimageController (GameObject obj)
 	{
 		ownerObject = obj.GetComponent<SpriteRenderer> ();
 	}
@@ -22,7 +33,7 @@ public class Afterimage
 	//	更新処理
 	public void Move ()
 	{
-		if (counter % 20 == 0) {
+		if (counter % 60 == 0) {
 			CreateEffect ();
 		}
 	}

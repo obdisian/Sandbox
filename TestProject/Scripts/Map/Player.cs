@@ -4,10 +4,10 @@ using UnityEngine;
 
 public class Player : RectMover
 {
-	[SerializeField]
-	protected float moveSpeed = 0.2f;
+	[SerializeField, TooltipAttribute("移動速度")]
+	protected float moveSpeed = 0.4f;
 
-	[SerializeField]
+	[SerializeField, TooltipAttribute("ジャンプ力")]
 	protected float jumpPower = 0.75f;
 
 
@@ -20,7 +20,7 @@ public class Player : RectMover
 
 
 	//	残像作成
-	private Afterimage afterimage;
+	private AfterimageController afterimage;
 
 
 	//	初期化処理
@@ -31,7 +31,7 @@ public class Player : RectMover
 		restartPoint = transform.position;
 		spriteRenderer = GetComponent<SpriteRenderer> ();
 
-		afterimage = new Afterimage (gameObject);
+		afterimage = new AfterimageController (gameObject);
 	}
 
 	//	更新処理
@@ -53,7 +53,8 @@ public class Player : RectMover
 		}
 
 		//	ジャンプ
-		if (Input.GetKeyDown (KeyCode.Space)) {
+		if (Input.GetKeyDown (KeyCode.Space) && isGround) {
+			isGround = false;
 			velocity.vertical = transform.up * jumpPower;
 		}
 

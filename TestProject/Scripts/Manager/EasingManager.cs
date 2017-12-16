@@ -4,25 +4,45 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Animate
+namespace animate
 {
 	public enum Target
 	{
 		Position,
 		LocalScale,
+
+		RectPosition,
+		RectScale,
+
 		SpriteColor,
 	}
 	public static class Extension
 	{
 		//	todo: 初期座標は自身から取得で、スピードは何秒間アニメーションさせるかで決める
-		public static BaseInfo SetEasing(this Transform transform, Target target, float speed, Easing.Type type, Easing.Ease ease, Vector3 start, Vector3 end)
+		public static BaseInfo SetEasing(this Transform transform, Target target, Easing.Type type, Easing.Ease ease, Vector3 start, Vector3 end, float sec)
 		{
 			switch (target)
 			{
 			case Target.Position:
-				return new PosInfo (speed, type, ease, transform, start, end);
+				return new PosInfo (type, ease, transform, start, end, sec);
 			case Target.LocalScale:
-				return new ScaleInfo (speed, type, ease, transform, start, end);
+				return new ScaleInfo (type, ease, transform, start, end, sec);
+			default:
+				Debug.LogError ("SetEasing [ " + target + " ]");
+				break;
+			}
+			return null;
+		}
+
+		//	todo: 初期座標は自身から取得で、スピードは何秒間アニメーションさせるかで決める
+		public static BaseInfo SetEasing(this RectTransform transform, Target target, Easing.Type type, Easing.Ease ease, Vector3 start, Vector3 end, float sec)
+		{
+			switch (target)
+			{
+			case Target.RectPosition:
+				return new PosInfo (type, ease, transform, start, end, sec);
+			case Target.RectScale:
+				return new ScaleInfo (type, ease, transform, start, end, sec);
 			default:
 				Debug.LogError ("SetEasing [ " + target + " ]");
 				break;
@@ -31,20 +51,20 @@ namespace Animate
 		}
 
 		//	スプライトのカラーを操作する
-		public static BaseInfo SetEasing(this SpriteRenderer spriteRenderer, Easing.Type type, Easing.Ease ease, Color end, float speed)
+		public static BaseInfo SetEasing(this SpriteRenderer spriteRenderer, Easing.Type type, Easing.Ease ease, Color end, float sec)
 		{
-			return new SpriteColorInfo (speed, type, ease, spriteRenderer, spriteRenderer.color, end);
+			return new SpriteColorInfo (type, ease, spriteRenderer, spriteRenderer.color, end, sec);
 		}
 	}
 
 	//	補間用情報クラス
 	public abstract class BaseInfo
 	{
-		public float Speed { get; set; }
+		public float Sec { get; set; }
 		public Easing.Type Type { get; set; }
 		public Easing.Ease Ease { get; set; }
 		public IEnumerator Enumerator { get; set; }
-		public Action DeleteAction { get; set; }	//	削除されるときに呼びたい処理
+		public Action DeleteAction { get; set; }	//	アニメーション終了時に呼びたい処理
 
 		protected abstract void ApplyEasing(float t);
 		protected IEnumerator Calculate()
@@ -52,31 +72,32 @@ namespace Animate
 			float t = 0.0f;
 			while (t != 1.0f)
 			{
-				t += Speed;
+				t += Sec;
 				if (t > 1.0f) { t = 1.0f; }
 				ApplyEasing(t);
 				yield return null;
 			}
 		}
 
-		public BaseInfo(float speed, Easing.Type type, Easing.Ease ease)
+		public BaseInfo(Easing.Type type, Easing.Ease ease, float sec)
 		{
-			Speed = speed;
 			Type = type;
 			Ease = ease;
+			Sec = sec;
 			Enumerator = Calculate();
 			DeleteAction = null;
+			EasingManager.Instance.InfoList.Add (this);
 		}
 	}
 
 	//	三次元ベクトル情報クラス
-	public abstract class Vector3Info : BaseInfo
+	public abstract class TransformInfo : BaseInfo
 	{
 		public Transform Transform { get; set; }
 		public Vector3 Start { get; set; }
 		public Vector3 End { get; set; }
-		public Vector3Info(float speed, Easing.Type type, Easing.Ease ease, Transform transform, Vector3 start, Vector3 end)
-			: base (speed, type, ease)
+		public TransformInfo(Easing.Type type, Easing.Ease ease, Transform transform, Vector3 start, Vector3 end, float sec)
+			: base (type, ease, sec)
 		{
 			Transform = transform;
 			Start = start;
@@ -85,46 +106,39 @@ namespace Animate
 	}
 
 	//	座標補間クラス
-	public class PosInfo : Vector3Info
+	public class PosInfo : TransformInfo
 	{
+		public PosInfo (Easing.Type type, Easing.Ease ease, Transform transform, Vector3 start, Vector3 end, float sec)
+			: base (type, ease, transform, start, end, sec) { }
 		protected override void ApplyEasing(float t)
 		{
 			Transform.position = Easing.Curve(Type, Ease, t, Start, End);
 		}
-		public PosInfo (float speed, Easing.Type type, Easing.Ease ease, Transform transform, Vector3 start, Vector3 end)
-			: base (speed, type, ease, transform, start, end)
-		{
-			EasingManager.Instance.InfoList.Add (this);
-		}
 	}
 
 	//	スケール補間クラス
-	public class ScaleInfo : Vector3Info
+	public class ScaleInfo : TransformInfo
 	{
+		public ScaleInfo(Easing.Type type, Easing.Ease ease, Transform transform, Vector3 start, Vector3 end, float sec)
+			: base (type, ease, transform, start, end, sec) { }
 		protected override void ApplyEasing(float t)
 		{
 			Transform.localScale = Easing.Curve(Type, Ease, t, Start, End);
 		}
-		public ScaleInfo(float speed, Easing.Type type, Easing.Ease ease, Transform transform, Vector3 start, Vector3 end)
-			: base (speed, type, ease, transform, start, end)
-		{
-			EasingManager.Instance.InfoList.Add (this);
-		}
 	}
 
-	//	スプライトのカラーフェード
+	//	スプライトの色補間クラス
 	public class SpriteColorInfo : BaseInfo
 	{
 		public SpriteRenderer SpriteRenderer { get; set; }
 		public Color Start { get; set; }
 		public Color End { get; set; }
-		public SpriteColorInfo(float speed, Easing.Type type, Easing.Ease ease, SpriteRenderer spriteRenderer, Color start, Color end)
-			: base (speed, type, ease)
+		public SpriteColorInfo(Easing.Type type, Easing.Ease ease, SpriteRenderer spriteRenderer, Color start, Color end, float sec)
+			: base (type, ease, sec)
 		{
 			SpriteRenderer = spriteRenderer;
 			Start = start;
 			End = end;
-			EasingManager.Instance.InfoList.Add (this);
 		}
 		protected override void ApplyEasing(float t)
 		{
@@ -136,12 +150,15 @@ namespace Animate
 //	補間管理クラス
 public class EasingManager : SingletonMonoBehaviour<EasingManager>
 {
-	public List<Animate.BaseInfo> InfoList { get; set; }
+	public List<animate.BaseInfo> InfoList { get; set; }
 
 	//	初期化処理
 	protected override void Init ()
 	{
-		InfoList = new List<Animate.BaseInfo> ();
+		InfoList = new List<animate.BaseInfo> ();
+
+		//	シーン切り替えの直前に登録してあるアニメーションを削除する
+		FadeManager.Instance.CallBackChangeScene += () => { InfoList.Clear (); };
 	}
 
 	//	更新処理
@@ -163,7 +180,7 @@ public class EasingManager : SingletonMonoBehaviour<EasingManager>
 		for (int i = InfoList.Count - 1; i >= 0; i--)
 		{
 			if (InfoList [i].Enumerator == null) {
-				Animate.BaseInfo info = InfoList [i];
+				animate.BaseInfo info = InfoList [i];
 				InfoList.Remove (InfoList [i]);
 				if (info.DeleteAction != null) { info.DeleteAction (); }
 			}

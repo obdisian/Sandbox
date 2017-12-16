@@ -14,17 +14,23 @@ public class FadeManager : SingletonMonoBehaviour<FadeManager>
 		Out,
 	}
 
-	private Fade fade = Fade.None;
-	private string nextSceneName = "";
-	private float param = 0.0f;
+	private Fade m_Fade = Fade.None;
+	public Fade FadeState { get { return m_Fade; } }
+
+	private string m_NextSceneName = "";
+	private float m_Param = 0.0f;
 
 	[SerializeField]
-	private float speed = 0.05f;
+	private float m_Speed = 0.05f;
 
 
 	//	フェードイメージ
-	private Image image;
+	private Image m_Image;
 
+
+	//	シーンが切り替わる前に呼びたい処理を登録する
+	public delegate void Delegate ();
+	public Delegate CallBackChangeScene = delegate { };
 
 
 	//	初期化処理
@@ -46,45 +52,47 @@ public class FadeManager : SingletonMonoBehaviour<FadeManager>
 		fadeObject.transform.parent = transform;
 
 		//	イメージコンポーネント設定
-		image = fadeObject.AddComponent<Image> ();
-		image.rectTransform.offsetMin = Vector2.zero;
-		image.rectTransform.offsetMax = Vector2.zero;
-		image.rectTransform.anchorMin = Vector2.zero;
-		image.rectTransform.anchorMax = Vector2.one;
-		image.rectTransform.pivot = Vector2.one * 0.5f;
-		image.sprite = Resources.Load<Sprite> ("Sprite/Fade/Image" + Random.Range (0, 3));
-		image.material = new Material (Shader.Find ("Custom/Fade"));
-		image.raycastTarget = false;
+		m_Image = fadeObject.AddComponent<Image> ();
+		m_Image.rectTransform.offsetMin = Vector2.zero;
+		m_Image.rectTransform.offsetMax = Vector2.zero;
+		m_Image.rectTransform.anchorMin = Vector2.zero;
+		m_Image.rectTransform.anchorMax = Vector2.one;
+		m_Image.rectTransform.pivot = Vector2.one * 0.5f;
+		m_Image.sprite = Resources.Load<Sprite> ("Sprite/Fade/Image" + Random.Range (0, 3));
+		m_Image.material = new Material (Shader.Find ("Custom/Fade"));
+		m_Image.raycastTarget = false;
 	}
 
 	//	更新処理
 	private void Update ()
 	{
-		switch(fade)
+		switch(m_Fade)
 		{
 		case Fade.None:
 			break;
 
 		case Fade.In:
 
-			param -= speed;
-			image.material.SetFloat("_Param", param);
+			m_Param -= m_Speed;
+			m_Image.material.SetFloat("_Param", m_Param);
 
-			if (param <= 0.0f) {
-				param = 0.0f;
-				fade = Fade.None;
+			if (m_Param <= 0.0f) {
+				m_Param = 0.0f;
+				m_Fade = Fade.None;
 			}
 			break;
 
 		case Fade.Out:
 
-			param += speed;
-			image.material.SetFloat("_Param", param);
+			m_Param += m_Speed;
+			m_Image.material.SetFloat("_Param", m_Param);
 
-			if (param >= 1.0f) {
-				param = 1.0f;
-				SceneManager.LoadScene (nextSceneName);
-				fade = Fade.In;
+			if (m_Param >= 1.0f) {
+				m_Param = 1.0f;
+				m_Fade = Fade.In;
+
+				CallBackChangeScene ();
+				SceneManager.LoadScene (m_NextSceneName);
 			}
 			break;
 		}
@@ -93,9 +101,9 @@ public class FadeManager : SingletonMonoBehaviour<FadeManager>
 	//	シーンの読み込み
 	public void LoadScene (string sceneName)
 	{
-		if (fade == Fade.None) {
-			fade = Fade.Out;
-			nextSceneName = sceneName;
+		if (m_Fade == Fade.None) {
+			m_Fade = Fade.Out;
+			m_NextSceneName = sceneName;
 		}
 	}
 }
